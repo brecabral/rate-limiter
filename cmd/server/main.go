@@ -1,16 +1,16 @@
 package main
 
 import (
-	"time"
-
+	"github.com/brecabral/rate-limiter/internal/infra/limiter"
 	"github.com/brecabral/rate-limiter/internal/infra/middleware"
 	"github.com/brecabral/rate-limiter/internal/webserver"
 )
 
 func main() {
 	server := webserver.NewWebServer(":8080")
-	limiter := middleware.NewRateLimiterMiddleware(3, 1*time.Second)
-	handler := limiter.Handle(server.HelloHandler)
+	limiter := limiter.NewRateLimiter()
+	limiterMiddleware := middleware.NewRateLimiterMiddleware(limiter)
+	handler := limiterMiddleware.Handle(server.HelloHandler)
 	server.AddHandler("/", handler)
 	server.Start()
 }
