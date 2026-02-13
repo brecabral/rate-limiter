@@ -12,5 +12,6 @@ func main() {
 	limiterMiddleware := middleware.NewRateLimiterMiddleware(limiter)
 	handler := limiterMiddleware.Handle(server.HelloHandler)
 	server.AddHandler("/", handler)
+	server.AddHandler("/token", server.POSTCreateToken)
 	server.Start()
 }

@@ -7,15 +7,15 @@ import (
 )
 
 type Token struct {
-	key                string
-	expiration         time.Time
-	rateLimitPerSecond int
+	Key                string
+	Expiration         time.Time
+	RateLimitPerSecond int
 }
 
 func CreateToken(duration time.Duration, rate int) Token {
 	return Token{
-		key:                uuid.New().String(),
-		expiration:         time.Now().Add(duration),
-		rateLimitPerSecond: rate,
+		Key:                uuid.New().String(),
+		Expiration:         time.Now().Add(duration),
+		RateLimitPerSecond: rate,
 	}
 }
