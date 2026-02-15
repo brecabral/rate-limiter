@@ -41,6 +41,9 @@ func (l *RateLimiter) AllowIP(key string) bool {
 	return true
 }
 
-func (m *RateLimiter) AllowToken(key string) bool {
-	return true
+func (l *RateLimiter) AllowToken(key string) bool {
+	if !l.repo.ValidKey(key) {
+		return false
+	}
+	return l.AllowIP(key)
 }

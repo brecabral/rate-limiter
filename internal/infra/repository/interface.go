@@ -5,8 +5,8 @@ import (
 )
 
 type StoreKey interface {
-	ValidKey(key string, rate int) bool
 	SaveKey(model.Token) error
+	ValidKey(key string) bool
 	GetRequestsLastSecond(key string) int
 	AddRequest(key string) error
 }

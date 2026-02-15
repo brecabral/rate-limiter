@@ -14,7 +14,7 @@ func (r *RedisRepository) SaveKey(model.Token) error {
 	return nil
 }
 
-func (r *RedisRepository) ValidKey(key string, rate int) bool {
+func (r *RedisRepository) ValidKey(key string) bool {
 	return true
 }
 
