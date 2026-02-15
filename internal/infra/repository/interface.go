@@ -1,8 +1,10 @@
 package repository
 
-import "github.com/brecabral/rate-limiter/internal/infra/token"
+import (
+	"github.com/brecabral/rate-limiter/internal/infra/model"
+)
 
 type StoreKey interface {
 	ValidKey(key string, rate int) bool
-	SaveKey(token.Token) error
+	SaveKey(model.Token) error
 }

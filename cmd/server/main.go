@@ -4,13 +4,17 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/brecabral/rate-limiter/internal/infra/limiter"
 	"github.com/brecabral/rate-limiter/internal/infra/middleware"
+	"github.com/brecabral/rate-limiter/internal/infra/model"
 	"github.com/brecabral/rate-limiter/internal/infra/repository"
 	"github.com/brecabral/rate-limiter/internal/webserver"
 	"github.com/joho/godotenv"
 )
+
+const TEST_KEY = "teste_key"
 
 func main() {
 	err := godotenv.Load()
@@ -27,6 +31,8 @@ func main() {
 	}
 
 	repo := repository.NewRedisRepository()
+	testToken := model.CreateManualToken(TEST_KEY, time.Hour, 10)
+	repo.SaveKey(testToken)
 	server := webserver.NewWebServer(":8080", repo)
 	limiter := limiter.NewRateLimiter(repo, maxRequestsIP, blockTime)
 

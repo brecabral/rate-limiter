@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/brecabral/rate-limiter/internal/infra/model"
 	"github.com/brecabral/rate-limiter/internal/infra/repository"
-	"github.com/brecabral/rate-limiter/internal/infra/token"
 )
 
 type WebServer struct {
@@ -64,7 +64,7 @@ func (s *WebServer) POSTCreateToken(w http.ResponseWriter, r *http.Request) {
 
 	duration := time.Duration(tokenRequest.Duration) * time.Second
 	rate := tokenRequest.RateLimitPerSecond
-	tokenCreated := token.CreateToken(duration, rate)
+	tokenCreated := model.CreateToken(duration, rate)
 
 	if err := s.repo.SaveKey(tokenCreated); err != nil {
 		http.Error(w, "Error Creating Token", http.StatusInternalServerError)
