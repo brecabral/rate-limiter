@@ -1,16 +1,38 @@
 package main
 
 import (
+	"log"
+	"os"
+	"strconv"
+
 	"github.com/brecabral/rate-limiter/internal/infra/limiter"
 	"github.com/brecabral/rate-limiter/internal/infra/middleware"
+	"github.com/brecabral/rate-limiter/internal/infra/repository"
 	"github.com/brecabral/rate-limiter/internal/webserver"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	server := webserver.NewWebServer(":8080")
-	limiter := limiter.NewRateLimiter()
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	maxRequestsIP, err := strconv.Atoi(os.Getenv("MAX_REQUESTS_BY_IP_PER_SECOND"))
+	if err != nil {
+		maxRequestsIP = 10
+	}
+	blockTime, err := strconv.Atoi(os.Getenv("BLOCK_TIME_IN_SECONDS"))
+	if err != nil {
+		blockTime = 60
+	}
+
+	repo := repository.NewRedisRepository()
+	server := webserver.NewWebServer(":8080", repo)
+	limiter := limiter.NewRateLimiter(repo, maxRequestsIP, blockTime)
+
 	limiterMiddleware := middleware.NewRateLimiterMiddleware(limiter)
 	handler := limiterMiddleware.Handle(server.HelloHandler)
+
 	server.AddHandler("/", handler)
 	server.AddHandler("/token", server.POSTCreateToken)
 	server.Start()

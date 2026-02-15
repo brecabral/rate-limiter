@@ -14,9 +14,10 @@ type WebServer struct {
 	repo repository.StoreKey
 }
 
-func NewWebServer(addr string) *WebServer {
+func NewWebServer(addr string, repo repository.StoreKey) *WebServer {
 	return &WebServer{
 		addr: addr,
+		repo: repo,
 	}
 }
 
