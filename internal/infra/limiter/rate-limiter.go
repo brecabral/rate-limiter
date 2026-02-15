@@ -1,22 +1,43 @@
 package limiter
 
-import "github.com/brecabral/rate-limiter/internal/infra/repository"
+import (
+	"log"
+	"time"
+
+	"github.com/brecabral/rate-limiter/internal/infra/repository"
+)
 
 type RateLimiter struct {
 	repo          repository.StoreKey
 	maxRequestsIP int
-	blockTime     int
+	blockTime     time.Duration
+	blockList     map[string]time.Time
 }
 
-func NewRateLimiter(repo repository.StoreKey, maxRequestsIP, blockTime int) *RateLimiter {
+func NewRateLimiter(repo repository.StoreKey, maxRequestsIP, blockTimeSeconds int) *RateLimiter {
 	return &RateLimiter{
 		repo:          repo,
 		maxRequestsIP: maxRequestsIP,
-		blockTime:     blockTime,
+		blockTime:     time.Duration(blockTimeSeconds) * time.Second,
 	}
 }
 
-func (m *RateLimiter) AllowIP(key string) bool {
+func (l *RateLimiter) AllowIP(key string) bool {
+	if time.Since(l.blockList[key]) < l.blockTime {
+		return false
+	}
+	delete(l.blockList, key)
+
+	count := l.repo.GetRequestsLastSecond(key)
+	if count >= l.maxRequestsIP {
+		l.blockList[key] = time.Now()
+		return false
+	}
+
+	err := l.repo.AddRequest(key)
+	if err != nil {
+		log.Print(err)
+	}
 	return true
 }
 

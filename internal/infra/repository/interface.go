@@ -7,4 +7,6 @@ import (
 type StoreKey interface {
 	ValidKey(key string, rate int) bool
 	SaveKey(model.Token) error
+	GetRequestsLastSecond(key string) int
+	AddRequest(key string) error
 }

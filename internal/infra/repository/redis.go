@@ -17,3 +17,11 @@ func (r *RedisRepository) SaveKey(model.Token) error {
 func (r *RedisRepository) ValidKey(key string, rate int) bool {
 	return true
 }
+
+func (r *RedisRepository) GetRequestsLastSecond(key string) int {
+	return 0
+}
+
+func (r *RedisRepository) AddRequest(key string) error {
+	return nil
+}
