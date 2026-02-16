@@ -4,17 +4,13 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/brecabral/rate-limiter/internal/infra/limiter"
 	"github.com/brecabral/rate-limiter/internal/infra/middleware"
-	"github.com/brecabral/rate-limiter/internal/infra/model"
 	"github.com/brecabral/rate-limiter/internal/infra/repository"
 	"github.com/brecabral/rate-limiter/internal/webserver"
 	"github.com/joho/godotenv"
 )
-
-const TEST_KEY = "teste_key"
 
 func main() {
 	err := godotenv.Load()
@@ -29,10 +25,17 @@ func main() {
 	if err != nil {
 		blockTime = 60
 	}
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+	redisDB, err := strconv.Atoi(os.Getenv("REDIS_DB"))
+	if err != nil {
+		redisDB = 0
+	}
 
-	repo := repository.NewRedisRepository()
-	testToken := model.CreateManualToken(TEST_KEY, time.Hour, 10)
-	repo.SaveKey(testToken)
+	repo := repository.NewRedisRepository(redisAddr, redisPassword, redisDB)
 	server := webserver.NewWebServer(":8080", repo)
 	limiter := limiter.NewRateLimiter(repo, maxRequestsIP, blockTime)
 
@@ -40,6 +43,6 @@ func main() {
 	handler := limiterMiddleware.Handle(server.HelloHandler)
 
 	server.AddHandler("/", handler)
-	server.AddHandler("/token", server.POSTCreateToken)
+	server.AddHandler("/api-key", server.CreateApiKeyHandler)
 	server.Start()
 }

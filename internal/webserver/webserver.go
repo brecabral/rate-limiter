@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -34,16 +35,16 @@ func (s *WebServer) HelloHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Hello World"))
 }
 
-type CreateToken struct {
-	Duration           int64 `json:"duration"`
+type CreateKey struct {
+	DurationInSeconds  int64 `json:"duration"`
 	RateLimitPerSecond int   `json:"rate"`
 }
 
-type TokenCreated struct {
+type CreatedKey struct {
 	ApiKey string `json:"api-key"`
 }
 
-func (s *WebServer) POSTCreateToken(w http.ResponseWriter, r *http.Request) {
+func (s *WebServer) CreateApiKeyHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -51,22 +52,23 @@ func (s *WebServer) POSTCreateToken(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	var tokenRequest CreateToken
-	if err := json.NewDecoder(r.Body).Decode(&tokenRequest); err != nil {
+	var requestKey CreateKey
+	if err := json.NewDecoder(r.Body).Decode(&requestKey); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	if tokenRequest.Duration <= 0 || tokenRequest.RateLimitPerSecond <= 0 {
+	if requestKey.DurationInSeconds <= 0 || requestKey.RateLimitPerSecond <= 0 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	duration := time.Duration(tokenRequest.Duration) * time.Second
-	rate := tokenRequest.RateLimitPerSecond
-	tokenCreated := model.CreateToken(duration, rate)
+	duration := time.Duration(requestKey.DurationInSeconds) * time.Second
+	rate := requestKey.RateLimitPerSecond
+	newApiKey := model.CreateApiKey(duration, rate)
 
-	if err := s.repo.SaveKey(tokenCreated); err != nil {
+	ctx := context.Background()
+	if err := s.repo.SaveKey(ctx, newApiKey); err != nil {
 		http.Error(w, "Error Creating Token", http.StatusInternalServerError)
 		return
 	}
@@ -74,7 +76,7 @@ func (s *WebServer) POSTCreateToken(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(TokenCreated{
-		ApiKey: tokenCreated.Key,
+	json.NewEncoder(w).Encode(CreatedKey{
+		ApiKey: newApiKey.Key,
 	})
 }

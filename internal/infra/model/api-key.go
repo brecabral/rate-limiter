@@ -6,23 +6,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type Token struct {
+type ApiKey struct {
 	Key                string
 	Expiration         time.Time
 	RateLimitPerSecond int
 }
 
-func CreateToken(duration time.Duration, ratePerSecond int) Token {
-	return Token{
+func CreateApiKey(duration time.Duration, ratePerSecond int) ApiKey {
+	return ApiKey{
 		Key:                uuid.New().String(),
-		Expiration:         time.Now().Add(duration),
-		RateLimitPerSecond: ratePerSecond,
-	}
-}
-
-func CreateManualToken(key string, duration time.Duration, ratePerSecond int) Token {
-	return Token{
-		Key:                key,
 		Expiration:         time.Now().Add(duration),
 		RateLimitPerSecond: ratePerSecond,
 	}

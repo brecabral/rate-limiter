@@ -1,0 +1,7 @@
+POST http://localhost:8080/api-key
+Content-Type: application/json
+
+{
+    "duration": 300,
+	"rate": 10
+}
