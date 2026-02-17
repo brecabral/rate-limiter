@@ -3,9 +3,8 @@ package repository
 import (
 	"context"
 	"fmt"
-	"log"
+
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/brecabral/rate-limiter/internal/infra/model"
@@ -27,7 +26,7 @@ func NewRedisRepository(addr, password string, db int) *RedisRepository {
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	return &RedisRepository{client: client}
@@ -41,7 +40,7 @@ func (r *RedisRepository) SaveKey(ctx context.Context, apiKey model.ApiKey) erro
 	}
 
 	redisKey := fmt.Sprintf("key:%s", apiKey.Key)
-	rate := fmt.Sprintf("rate:%d", apiKey.RateLimitPerSecond)
+	rate := strconv.Itoa(apiKey.RateLimitPerSecond)
 	return r.client.Set(ctx, redisKey, rate, ttl).Err()
 }
 
@@ -49,39 +48,40 @@ func (r *RedisRepository) GetApiKeyAttributes(ctx context.Context, key string) (
 	redisKey := fmt.Sprintf("key:%s", key)
 
 	value, err := r.client.Get(ctx, redisKey).Result()
+	if err == redis.Nil {
+		return 0, false, false, nil
+	}
 	if err != nil {
-		valid = false
+		return 0, false, false, err
+	}
+	valid = true
+
+	block, err = r.IsBlocked(ctx, "apikey:", key)
+	if err != nil {
 		return
 	}
 
-	block, err = r.IsBlocked(ctx, key)
-	if err != nil {
-		return
-	}
-
-	rateString, _ := strings.CutPrefix(value, "rate:")
-	rate, err = strconv.Atoi(rateString)
+	rate, err = strconv.Atoi(value)
 	return
 }
 
 // API KEY and IP
-func (r *RedisRepository) GetRequestsLastSecond(ctx context.Context, id string) (int, error) {
+func (r *RedisRepository) GetRequestsLastSecond(ctx context.Context, prefix, id string) (int, error) {
 	windowEnd := time.Now().UnixNano()
 	windowStart := time.Now().Add(-1 * time.Second).UnixNano()
 
-	redisKey := fmt.Sprintf("requests:%s", id)
+	redisKey := fmt.Sprintf("requests:%s:%s", prefix, id)
 	count, err := r.client.ZCount(ctx, redisKey, fmt.Sprintf("%d", windowStart), fmt.Sprintf("%d", windowEnd)).Result()
 	if err != nil {
-		log.Print(err)
 		return 0, err
 	}
 
 	return int(count), nil
 }
 
-func (r *RedisRepository) AddRequest(ctx context.Context, id string) error {
+func (r *RedisRepository) AddRequest(ctx context.Context, prefix, id string) error {
 	now := time.Now().UnixNano()
-	redisKey := fmt.Sprintf("requests:%s", id)
+	redisKey := fmt.Sprintf("requests:%s:%s", prefix, id)
 
 	member := redis.Z{
 		Score:  float64(now),
@@ -97,8 +97,8 @@ func (r *RedisRepository) AddRequest(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *RedisRepository) Block(ctx context.Context, id string, blockTime time.Duration) error {
-	redisKey := fmt.Sprintf("block:apikey:%s", id)
+func (r *RedisRepository) Block(ctx context.Context, prefix, id string, blockTime time.Duration) error {
+	redisKey := fmt.Sprintf("block:%s:%s", prefix, id)
 	ttl := blockTime
 	if ttl <= 0 {
 		return fmt.Errorf("api key already expired")
@@ -106,8 +106,8 @@ func (r *RedisRepository) Block(ctx context.Context, id string, blockTime time.D
 	return r.client.Set(ctx, redisKey, 1, blockTime).Err()
 }
 
-func (r *RedisRepository) IsBlocked(ctx context.Context, id string) (bool, error) {
-	redisKey := fmt.Sprintf("block:apikey:%s", id)
+func (r *RedisRepository) IsBlocked(ctx context.Context, prefix, id string) (bool, error) {
+	redisKey := fmt.Sprintf("block:%s:%s", prefix, id)
 
 	exists, err := r.client.Exists(ctx, redisKey).Result()
 	if err != nil {

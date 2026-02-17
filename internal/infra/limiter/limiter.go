@@ -34,17 +34,13 @@ func (l *RateLimiter) Allow(ctx context.Context, ip, key string) bool {
 	if key != "" {
 		return l.AllowKey(ctx, key)
 	}
-	if ip != "" {
-		return l.AllowKey(ctx, ip)
-	}
-	return false
-
+	return l.AllowIP(ctx, ip)
 }
 
 func (l *RateLimiter) AllowIP(ctx context.Context, ip string) bool {
-	block, err := l.repo.IsBlocked(ctx, ip)
+	block, err := l.repo.IsBlocked(ctx, "ip", ip)
 	if err != nil {
-		log.Print(err)
+		log.Printf("limiter:ip:is-block:%s", err)
 		return false
 	}
 
@@ -52,23 +48,23 @@ func (l *RateLimiter) AllowIP(ctx context.Context, ip string) bool {
 		return false
 	}
 
-	count, err := l.repo.GetRequestsLastSecond(ctx, ip)
+	count, err := l.repo.GetRequestsLastSecond(ctx, "ip", ip)
 	if err != nil {
-		log.Print(err)
+		log.Printf("limiter:ip:get-requests:%s", err)
 		return false
 	}
 
 	if count >= l.maxRequestsByIP {
-		err = l.repo.Block(ctx, ip, l.blockTime)
+		err = l.repo.Block(ctx, "ip", ip, l.blockTime)
 		if err != nil {
-			log.Print(err)
+			log.Printf("limiter:ip:block:%s", err)
 		}
 		return false
 	}
 
-	err = l.repo.AddRequest(ctx, ip)
+	err = l.repo.AddRequest(ctx, "ip", ip)
 	if err != nil {
-		log.Print(err)
+		log.Printf("limiter:ip:add-request:%s", err)
 	}
 	return true
 }
@@ -76,7 +72,7 @@ func (l *RateLimiter) AllowIP(ctx context.Context, ip string) bool {
 func (l *RateLimiter) AllowKey(ctx context.Context, key string) bool {
 	rate, valid, block, err := l.repo.GetApiKeyAttributes(ctx, key)
 	if err != nil {
-		log.Print(err)
+		log.Printf("limiter:key:get-attributes:%s", err)
 		return false
 	}
 
@@ -84,23 +80,23 @@ func (l *RateLimiter) AllowKey(ctx context.Context, key string) bool {
 		return false
 	}
 
-	count, err := l.repo.GetRequestsLastSecond(ctx, key)
+	count, err := l.repo.GetRequestsLastSecond(ctx, "apikey", key)
 	if err != nil {
-		log.Print(err)
+		log.Printf("limiter:key:get-requests:%s", err)
 		return false
 	}
 
 	if count >= rate {
-		err = l.repo.Block(ctx, key, l.blockTime)
+		err = l.repo.Block(ctx, "apikey", key, l.blockTime)
 		if err != nil {
-			log.Print(err)
+			log.Printf("limiter:key:block:%s", err)
 		}
 		return false
 	}
 
-	err = l.repo.AddRequest(ctx, key)
+	err = l.repo.AddRequest(ctx, "apikey", key)
 	if err != nil {
-		log.Print(err)
+		log.Printf("limiter:key:add-request:%s", err)
 	}
 	return true
 }
