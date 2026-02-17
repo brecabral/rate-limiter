@@ -7,6 +7,11 @@ import (
 	"github.com/brecabral/rate-limiter/internal/infra/model"
 )
 
+const (
+	PrefixIP     = "ip"
+	PrefixAPIKey = "apikey"
+)
+
 type StoreKey interface {
 	SaveKey(ctx context.Context, apiKey model.ApiKey) error
 	GetApiKeyAttributes(ctx context.Context, key string) (rate int, valid bool, block bool, err error)

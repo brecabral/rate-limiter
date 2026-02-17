@@ -38,7 +38,7 @@ func (l *RateLimiter) Allow(ctx context.Context, ip, key string) bool {
 }
 
 func (l *RateLimiter) AllowIP(ctx context.Context, ip string) bool {
-	block, err := l.repo.IsBlocked(ctx, "ip", ip)
+	block, err := l.repo.IsBlocked(ctx, repository.PrefixIP, ip)
 	if err != nil {
 		log.Printf("limiter:ip:is-block:%s", err)
 		return false
@@ -48,21 +48,21 @@ func (l *RateLimiter) AllowIP(ctx context.Context, ip string) bool {
 		return false
 	}
 
-	count, err := l.repo.GetRequestsLastSecond(ctx, "ip", ip)
+	count, err := l.repo.GetRequestsLastSecond(ctx, repository.PrefixIP, ip)
 	if err != nil {
 		log.Printf("limiter:ip:get-requests:%s", err)
 		return false
 	}
 
 	if count >= l.maxRequestsByIP {
-		err = l.repo.Block(ctx, "ip", ip, l.blockTime)
+		err = l.repo.Block(ctx, repository.PrefixIP, ip, l.blockTime)
 		if err != nil {
 			log.Printf("limiter:ip:block:%s", err)
 		}
 		return false
 	}
 
-	err = l.repo.AddRequest(ctx, "ip", ip)
+	err = l.repo.AddRequest(ctx, repository.PrefixIP, ip)
 	if err != nil {
 		log.Printf("limiter:ip:add-request:%s", err)
 	}
@@ -80,21 +80,21 @@ func (l *RateLimiter) AllowKey(ctx context.Context, key string) bool {
 		return false
 	}
 
-	count, err := l.repo.GetRequestsLastSecond(ctx, "apikey", key)
+	count, err := l.repo.GetRequestsLastSecond(ctx, repository.PrefixAPIKey, key)
 	if err != nil {
 		log.Printf("limiter:key:get-requests:%s", err)
 		return false
 	}
 
 	if count >= rate {
-		err = l.repo.Block(ctx, "apikey", key, l.blockTime)
+		err = l.repo.Block(ctx, repository.PrefixAPIKey, key, l.blockTime)
 		if err != nil {
 			log.Printf("limiter:key:block:%s", err)
 		}
 		return false
 	}
 
-	err = l.repo.AddRequest(ctx, "apikey", key)
+	err = l.repo.AddRequest(ctx, repository.PrefixAPIKey, key)
 	if err != nil {
 		log.Printf("limiter:key:add-request:%s", err)
 	}

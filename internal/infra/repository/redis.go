@@ -56,7 +56,7 @@ func (r *RedisRepository) GetApiKeyAttributes(ctx context.Context, key string) (
 	}
 	valid = true
 
-	block, err = r.IsBlocked(ctx, "apikey:", key)
+	block, err = r.IsBlocked(ctx, PrefixAPIKey, key)
 	if err != nil {
 		return
 	}
