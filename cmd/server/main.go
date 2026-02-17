@@ -15,7 +15,7 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Print(".env not found, using system environment")
 	}
 	maxRequestsIP, err := strconv.Atoi(os.Getenv("MAX_REQUESTS_BY_IP_PER_SECOND"))
 	if err != nil {

@@ -1,0 +1,35 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      - repo
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    container_name: rate-limiter
+    restart: unless-stopped
+    networks:
+      - repo
+    ports:
+      - "8080:8080"
+    environment:
+      MAX_REQUESTS_BY_IP_PER_SECOND: 10
+      BLOCK_TIME_IN_SECONDS: 300
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+    depends_on:
+      redis:
+        condition: service_healthy
+
+networks:
+  repo:
+    driver: bridge
